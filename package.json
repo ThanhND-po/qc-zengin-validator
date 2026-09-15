@@ -1,0 +1,28 @@
+{
+  "name": "qc-zengin-validator",
+  "version": "0.1.0",
+  "description": "Local, byte-level Zengin (全銀) format validator and inspector for Japanese bank transfer files",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ThanhND-po/qc-zengin-validator.git"
+  },
+  "keywords": [
+    "zengin",
+    "zengin-format",
+    "japanese-banking",
+    "cp932",
+    "shift_jis",
+    "qc-validator",
+    "bank-transfer"
+  ],
+  "scripts": {
+    "dev": "node scripts/run.mjs",
+    "test": "node scripts/run.mjs --test",
+    "benchmark": "node scripts/run.mjs --benchmark",
+    "share": "node scripts/run.mjs --share"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

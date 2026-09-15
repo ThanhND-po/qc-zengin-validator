@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Kiểm tra file Zengin theo byte, hoàn toàn trên máy của bạn.">
+  <title>Zengin Validator · Kiểm tra file</title>
+  <link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Đến nội dung chính</a>
+  <aside class="sidebar">
+    <a class="brand" href="#verify"><span class="brand-symbol">Z</span><span>Zengin<span class="brand-sub">VALIDATOR</span></span></a>
+    <div class="workspace-label">KHÔNG GIAN KIỂM TRA</div>
+    <nav aria-label="Điều hướng chính">
+      <a href="#verify" id="nav-verify" class="nav-item active"><span data-icon="scan"></span>Kiểm tra file</a>
+      <a href="#settings" id="nav-settings" class="nav-item"><span data-icon="settings"></span>Settings</a>
+    </nav>
+    <div class="sidebar-bottom"><div class="privacy-card"><span data-icon="shield"></span><strong>Dữ liệu ở lại máy bạn</strong><p>File được xử lý local.<br>Chỉ bạn chủ động lưu log.</p></div><div class="version"><span class="dot"></span> Local workspace <span>v0.1</span></div></div>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><div><span data-icon="home"></span><span class="crumb-separator">/</span><span id="breadcrumb">Kiểm tra file</span></div><span class="local-badge"><span class="dot"></span> Chỉ xử lý trên máy này</span></header>
+    <main id="main" tabindex="-1">
+      <section id="verify-page">
+        <div class="page-heading"><div><div class="eyebrow">ZENGIN FILE INSPECTOR</div><h1>Kiểm tra rõ đến từng byte.</h1><p>Upload file Zengin để kiểm tra cấu trúc, dữ liệu và đối chiếu Trailer.</p></div><button id="download-log" class="button secondary" hidden><span data-icon="download"></span>Tải log kiểm tra</button></div>
+        <div class="config-strip"><span class="config-label">Đang áp dụng</span><span>Type Code <strong id="active-type">21</strong></span><span>Tối đa <strong id="active-limit">10.000</strong> Data Records</span><a href="#settings">Cấu hình <span aria-hidden="true">↗</span></a></div>
+        <div id="stale-notice" class="notice warning" hidden>Settings đã thay đổi. Kết quả bên dưới sử dụng cấu hình cũ. Chọn “Kiểm tra lại” để áp dụng cấu hình mới.</div>
+        <div id="app-error" class="notice error" role="alert" hidden></div>
+        <input id="file-input" name="file-input" autocomplete="off" type="file" accept=".txt,text/plain" class="visually-hidden" aria-label="Chọn file Zengin TXT">
+        <button id="dropzone" class="dropzone" type="button"><span class="upload-icon" data-icon="upload"></span><strong><span class="accent">Chọn file từ máy</span> hoặc kéo thả vào đây</strong><span>File .TXT · CP932 · 120 bytes / record</span><small id="upload-hint">Dữ liệu không được gửi ra ngoài máy của bạn.</small></button>
+        <div id="file-bar" class="file-bar" hidden><span class="file-icon" data-icon="file"></span><div class="file-info"><strong id="filename"></strong><span id="file-meta"></span></div><button id="rerun" class="button secondary"><span data-icon="refresh"></span>Kiểm tra lại</button><button id="replace" class="button secondary">Thay file</button><button id="clear" class="icon-button" aria-label="Xóa file khỏi phiên"><span data-icon="close"></span></button></div>
+        <section id="progress" class="progress-card" aria-live="polite" hidden><span class="spinner"></span><div><strong>Đang kiểm tra file…</strong><p>Đọc raw bytes, kiểm tra records và đối chiếu control totals. <span id="elapsed">0 giây</span></p></div><button id="cancel" class="button secondary">Hủy</button></section>
+        <div id="results" hidden>
+          <section id="status-banner" class="status-banner" aria-live="polite"><span id="status-icon"></span><div><h2 id="status-title"></h2><p id="status-description"></p></div><span id="duration" class="duration"></span></section>
+          <div class="metrics">
+            <section class="metric"><div class="metric-label">Data Records <span data-icon="layers"></span></div><strong id="metric-count"></strong><p id="metric-count-detail"></p></section>
+            <section class="metric"><div class="metric-label">Tổng số tiền <span class="currency-icon">¥</span></div><strong id="metric-amount"></strong><p id="metric-amount-detail"></p></section>
+            <section class="metric"><div class="metric-label">Đối chiếu Trailer <span data-icon="check"></span></div><strong id="metric-trailer"></strong><p id="metric-trailer-detail"></p></section>
+          </div>
+          <div class="inspection-layout">
+            <section class="viewer card" aria-labelledby="preview-title"><div class="card-title"><div><h2 id="preview-title">Nội dung file</h2><p id="preview-subtitle">Bytes gốc, không chuẩn hóa hoặc sửa dữ liệu.</p></div><div class="segmented" role="group" aria-label="Chế độ preview"><button id="grid-mode" aria-pressed="true">Byte grid</button><button id="text-mode" aria-pressed="false">TXT</button></div></div>
+              <div class="viewer-tools"><form id="jump-form"><label for="jump-row">Dòng</label><input id="jump-row" name="jump-row" autocomplete="off" type="number" min="1" value="1" aria-label="Số dòng"><label for="jump-byte">Byte</label><input id="jump-byte" name="jump-byte" autocomplete="off" type="number" min="1" value="1" aria-label="Byte position"><button class="button compact" type="submit">Đi đến</button></form><label class="space-control"><input id="show-spaces" name="show-spaces" autocomplete="off" type="checkbox" checked> Hiện spaces</label></div>
+              <div id="preview-loading" role="status" class="preview-loading" hidden>Đang đọc preview…</div>
+              <div id="grid-scroll" class="grid-scroll" tabindex="0" aria-label="Preview byte grid, cuộn ngang để xem các byte"><table id="byte-grid"><thead></thead><tbody></tbody></table></div>
+              <div id="text-scroll" class="text-scroll" tabindex="0" aria-label="Preview TXT decoded bằng CP932" hidden></div>
+              <div id="cell-detail" class="cell-detail" aria-live="polite">Chọn một byte để xem field, ký tự và giá trị hex.</div>
+              <div class="viewer-footer"><span id="page-label"></span><div><button id="previous" class="icon-button" aria-label="Trang dòng trước">←</button><button id="next" class="icon-button" aria-label="Trang dòng tiếp theo">→</button></div></div>
+              <div class="grid-legend"><span><i class="legend-error"></i>Lỗi</span><span><i class="legend-warning"></i>Chưa xác minh</span><span><b>·</b> Space 0x20</span><span><b>↳</b> Byte tiếp nối ký tự</span></div>
+            </section>
+            <aside class="issues card" aria-labelledby="issues-title"><div class="card-title"><div><h2 id="issues-title">Kết quả chi tiết <span id="issue-badge" class="count-badge">0</span></h2><p id="issue-summary"></p></div></div><div id="issue-list" class="issue-list"></div><div id="issue-limit-note" class="issue-limit-note" hidden>Panel hiển thị 100 mục đầu. Tải log để xem đầy đủ các mục phát hiện.</div></aside>
+          </div>
+          <p id="result-provenance" class="result-provenance"></p>
+        </div>
+        <section id="empty-state" class="empty-state"><div class="empty-heading"><span class="line"></span><span>MỘT LẦN KIỂM TRA, BA LỚP ĐỐI CHIẾU</span><span class="line"></span></div><div class="guide-grid"><article><span class="step-number">01</span><h2>Cấu trúc file</h2><p>Thứ tự Header, Data, Trailer, End và LF giữa các record (CRLF được xử lý tương đương LF).</p></article><article><span class="step-number">02</span><h2>Chính xác từng byte</h2><p>Độ dài, ký tự, field và padding. Xác định vị trí lỗi trên byte grid.</p></article><article><span class="step-number">03</span><h2>Đối chiếu tổng</h2><p>Đếm Data Records và cộng Amount để so khớp với Trailer.</p></article></div><p class="empty-footnote"><span data-icon="shield"></span> Nội dung file chỉ tồn tại trong phiên kiểm tra.</p></section>
+      </section>
+      <section id="settings-page" hidden><div class="page-heading"><div><div class="eyebrow">WORKSPACE SETTINGS</div><h1>Cấu hình kiểm tra</h1><p>Thiết lập kỳ vọng trước khi bắt đầu phiên kiểm tra Zengin.</p></div></div><div class="settings-layout"><section class="card settings-card"><div class="card-title"><div><h2>Validation settings</h2><p>Lưu trên browser này, áp dụng cho lần kiểm tra tiếp theo.</p></div><span class="pill">Full access</span></div><form id="settings-form"><div class="form-field"><label for="setting-type">Type Code kỳ vọng</label><p>Đối chiếu với Type Code trong Header Record.</p><select id="setting-type" name="setting-type" autocomplete="off"><option value="21">21 · General Transfer / 総合</option><option value="11">11 · Salary / 給与</option><option value="71">71 · Salary / 給与</option><option value="12">12 · Bonus / 賞与</option><option value="72">72 · Bonus / 賞与</option></select></div><div class="form-field"><label for="setting-limit">Giới hạn Data Records</label><p>Vượt giới hạn sẽ dừng kiểm tra và ghi log. Không tính Header, Trailer, End.</p><input id="setting-limit" name="setting-limit" autocomplete="off" type="number" min="1" max="999999" step="1" required><small>Mặc định 10.000. Tối đa 999.999 theo độ dài 6 digits của Total Count. Giới hạn cao có thể cần thêm thời gian và bộ nhớ.</small></div><div class="form-actions"><button type="button" id="reset-settings" class="button secondary">Về mặc định</button><button class="button primary" type="submit">Lưu cấu hình</button></div><p id="settings-message" role="status"></p></form></section><aside class="settings-aside"><span class="section-icon" data-icon="lock"></span><h2>Quy tắc theo specification</h2><p>Các quy tắc này được giữ cố định để kết quả kiểm tra nhất quán.</p><dl><div><dt>Encoding</dt><dd>CP932</dd></div><div><dt>Record length</dt><dd>120 bytes</dd></div><div><dt>Line ending</dt><dd>LF (CRLF → LF)</dd></div><div><dt>BOM</dt><dd>Không cho phép</dd></div></dl><p>EDI Flag chưa có cấu hình riêng. File dùng EDI vẫn được kiểm tra format và ghi rõ phần nội dung nghiệp vụ chưa xác minh.</p><p id="technical-limit"></p></aside></div></section>
+    </main>
+    <footer class="footer"><span>Zengin Validator <span class="footer-dot">·</span> Local MVP</span><span>Tối ưu cho Google Chrome trên macOS. OS/browser khác ngoài phạm vi hỗ trợ.</span></footer>
+  </div>
+</body></html>
