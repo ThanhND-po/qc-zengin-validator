@@ -1,6 +1,6 @@
 # Zengin Format Specification and Verification Rules
 
-Version: `zengin-standard-120byte-v3-kana-long-mark`
+Version: `zengin-standard-120byte-v5-schema2-lf-only`
 
 This document defines the byte-level layout, field constraints, character encodings, and verification rules implemented by **QC Zengin Validator**.
 
@@ -14,7 +14,7 @@ The rules are based on the standard banking specifications established by the **
 |---|---|
 | **Record Length** | Exactly 120 payload bytes per record (excluding line delimiters). |
 | **Character Encoding** | CP932 (Shift_JIS compatible, JIS X 0201 half-width Katakana and ASCII). Strictly no Byte Order Mark (BOM). |
-| **Line Delimiters** | Standard output uses LF (`0x0A`). CRLF (`0x0D 0x0A`) is automatically accepted and normalized per record. Standalone CR (`0x0D`) without LF or missing trailing line breaks are flagged as structural errors. |
+| **Line Delimiters** | Every record, including End, must end with exactly one LF (`0x0A`). CRLF (`0x0D 0x0A`), standalone CR (`0x0D`), and a missing final LF are invalid. CRLF records remain inspectable, but they do not pass validation. |
 | **Record Sequence** | Exactly one Header Record (`1`), one or more Data Records (`2`), exactly one Trailer Record (`8`), and exactly one End Record (`9`). No empty lines or trailing data after the End Record. |
 | **Field Padding** | **Numeric (`N`)**: Right-aligned, zero-padded (`0`) on the left.<br>**Text / Alphanumeric (`C`)**: Left-aligned, space-padded (`0x20`) on the right.<br>**Dummy Fields**: Padded entirely with ASCII spaces (`0x20`). |
 
@@ -130,3 +130,7 @@ All characters must strictly occupy **1 byte** under CP932 / JIS X 0201 encoding
    - `incomplete`: Syntax is valid, but contains unverified items (such as EDI payloads).
    - `invalid`: Syntax, character, length, or mathematical discrepancy errors were detected.
    - `stopped`: Verification aborted early due to structural failure (e.g., corrupt line endings) or exceeding configured record limit.
+
+## 8. Validation Result Contract
+
+The validator returns result schema version `2`. Core findings contain stable `code` and `fieldCode` identifiers, byte evidence, severity, and machine-readable `details`. The core does not return localized messages or display labels. QC Zengin Validator owns the Vietnamese presentation mapping in `public/locale-vi.js`.

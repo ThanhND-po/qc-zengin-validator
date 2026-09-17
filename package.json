@@ -1,6 +1,7 @@
 {
   "name": "qc-zengin-validator",
   "version": "0.1.0",
+  "type": "module",
   "description": "Local, byte-level Zengin (全銀) format validator and inspector for Japanese bank transfer files",
   "license": "MIT",
   "repository": {

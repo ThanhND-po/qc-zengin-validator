@@ -1,3 +1,5 @@
+import { fieldCopy, fieldLabel, issueCopy, issueDetails, issueMessage } from './locale-vi.js';
+
 const $ = id => document.getElementById(id);
 const icons = {
   scan: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/>',
@@ -23,7 +25,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;
 const visible = value => String(value ?? '').replaceAll(' ', '·').replaceAll('\t', '⇥');
 const storageKey = 'zengin-validator.settings.v1';
 const pageSize = 20;
-let config = { defaultLimit: 10000, maxUploadBytes: 16777216, typeCodes: ['21', '11', '71', '12', '72'] };
+let config = { defaultLimit: 10000, maxUploadBytes: 16777216, typeCodes: ['21', '11', '71', '12', '72'], issueCodes: [], fieldCodes: [] };
 let settings = { typeCode: '21', maxRecords: 10000 };
 let file = null, bytes = null, rows = [], result = null, localFailure = null;
 let aborter = null, timer = null, runId = 0, previewId = 0, page = 0, byteStart = 1, mode = 'grid', selection = null, lastPreview = [];
@@ -55,6 +57,9 @@ try {
   const response = await fetch('/api/config');
   if (!response.ok) throw new Error();
   config = await response.json();
+  const missingIssueCopy = config.issueCodes.filter(code => !issueCopy[code]);
+  const missingFieldCopy = config.fieldCodes.filter(code => !fieldCopy[code]);
+  if (config.resultSchemaVersion !== 2 || missingIssueCopy.length || missingFieldCopy.length) throw new Error();
   settings.maxRecords = config.defaultLimit;
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
@@ -180,13 +185,13 @@ function renderResult() {
   $('metric-trailer').textContent = result.countMatches === false || result.amountMatches === false ? 'Không khớp'
     : result.countMatches === true && result.amountMatches === true ? 'Khớp' : 'Chưa đủ dữ liệu';
   $('metric-trailer-detail').textContent = 'Đối chiếu độc lập số lượng và tổng Amount';
-  $('preview-subtitle').textContent = `${number(rows.length)} dòng vật lý · CP932 · LF/CRLF ngoài 120 bytes`;
+  $('preview-subtitle').textContent = `${number(rows.length)} dòng vật lý · CP932 · line ending ngoài 120 bytes`;
   $('jump-row').max = Math.max(1, rows.length);
   $('issue-badge').textContent = number(result.issues.length);
   $('issue-summary').textContent = `${number(result.errorCount)} lỗi, ${number(result.unverifiedCount)} mục chưa xác minh${result.complete ? '' : ' trước khi dừng'}`;
   $('issue-limit-note').hidden = result.issues.length <= 100;
   $('issue-list').innerHTML = result.issues.length ? result.issues.slice(0, 100).map((issue, i) => `
-    <button class="issue-button" data-issue="${i}"><span class="issue-meta ${issue.severity === 'unverified' ? 'unverified' : ''}">${issue.severity === 'unverified' ? 'CHƯA XÁC MINH' : 'LỖI'} <span>· Dòng ${number(issue.row)}</span></span><strong>${esc(issue.field)}</strong><p>${esc(issue.message)}</p><p>Byte ${number(issue.start)}${issue.end !== issue.start ? '–' + number(issue.end) : ''}</p>${issue.excerpt ? `<code>${esc(visible(issue.excerpt).slice(0, 140))}</code>` : ''}</button>`).join('')
+    <button class="issue-button" data-issue="${i}"><span class="issue-meta ${issue.severity === 'unverified' ? 'unverified' : ''}">${issue.severity === 'unverified' ? 'CHƯA XÁC MINH' : 'LỖI'} <span>· Dòng ${number(issue.row)}</span></span><strong>${esc(fieldLabel(issue.fieldCode))}</strong><p>${esc(issueMessage(issue))}</p><p>Byte ${number(issue.start)}${issue.end !== issue.start ? '–' + number(issue.end) : ''}</p>${issue.excerpt ? `<code>${esc(visible(issue.excerpt).slice(0, 140))}</code>` : ''}</button>`).join('')
     : `<div class="issue-empty"><span>${icon('check')}</span><h2>Không phát hiện lỗi</h2><p>Chọn một byte trong preview để xem chi tiết field.</p></div>`;
   $('issue-list').querySelectorAll('[data-issue]').forEach(button => button.addEventListener('click', () => {
     const index = Number(button.dataset.issue); const issue = result.issues[index];
@@ -195,7 +200,7 @@ function renderResult() {
     $('jump-row').value = Math.min(issue.row, Math.max(1, rows.length)); $('jump-byte').value = issue.start;
     page = Math.floor((Math.min(issue.row, rows.length) - 1) / pageSize); byteStart = Math.floor((issue.start - 1) / 120) * 120 + 1;
     mode = 'grid'; syncMode(); renderPreview();
-    $('cell-detail').textContent = `${issue.code} · ${issue.message} ${issue.expected ? 'Kỳ vọng: ' + issue.expected + '. ' : ''}${issue.actual ? 'Thực tế: ' + issue.actual + '. ' : ''}${issue.hex ? 'Hex: ' + issue.hex.slice(0, 600) : ''}`;
+    $('cell-detail').textContent = `${issue.code} · ${issueMessage(issue)}${issueDetails(issue) ? ' · ' + issueDetails(issue) : ''}${issue.hex ? ' · Hex: ' + issue.hex.slice(0, 600) : ''}`;
   }));
   $('result-provenance').textContent = `${result.ruleVersion} · Type Code ${result.settings.typeCode} · Limit ${number(result.settings.maxRecords)} · ${new Date(result.checkedAt).toLocaleString('vi-VN')} · Không xác nhận ngân hàng sẽ tiếp nhận file.`;
 }
@@ -243,14 +248,14 @@ function drawPreview() {
       if (label === ' ') label = spaces ? '·' : ' ';
       const field = row.fields.find(f => f.start <= col && col <= f.end);
       const classes = [fieldStarts.has(col) ? 'field-start' : '', token?.char === ' ' ? 'space' : '', col > 120 ? 'overflow-cell' : '', issue ? issue.severity === 'unverified' ? 'unverified-cell' : 'error-cell' : '', selection?.row === row.number && selection?.byte === col ? 'selected-cell' : ''].filter(Boolean).join(' ');
-      const title = `Dòng ${row.number} · byte ${col} · ${field?.name || 'Ngoài record'} · ${token?.hex || 'không có byte'}${issue ? ' · ' + issue.message : ''}`;
+      const title = `Dòng ${row.number} · byte ${col} · ${field ? fieldLabel(field.code) : 'Ngoài record'} · ${token?.hex || 'không có byte'}${issue ? ' · ' + issueMessage(issue) : ''}`;
       return `<td data-row="${row.number}" data-byte="${col}" tabindex="${col === byteStart ? '0' : '-1'}" class="${classes}" aria-label="${esc(title)}" title="${esc(title)}">${esc(label)}</td>`;
     }).join('')}</tr>`;
   }).join('');
   $('text-scroll').innerHTML = lastPreview.map(row => `<div class="text-row"><span class="text-row-number">${row.number}</span><span>${row.tokens.filter(t => t.start >= byteStart && t.start <= byteEnd).map(t => {
     const label = t.valid ? (spaces ? visible(t.char) : t.char) : `<${t.hex}>`;
     const issue = affected(row.number, t.start);
-    return issue ? `<mark class="${issue.severity === 'unverified' ? 'unverified' : ''}" title="${esc(issue.message)}">${esc(label)}</mark>` : esc(label);
+    return issue ? `<mark class="${issue.severity === 'unverified' ? 'unverified' : ''}" title="${esc(issueMessage(issue))}">${esc(label)}</mark>` : esc(label);
   }).join('')}</span><span class="eol">${row.end - row.start > byteEnd ? '… còn bytes phía sau' : esc(row.ending)}</span></div>`).join('');
   $('page-label').textContent = `Dòng ${lastPreview[0].number}–${lastPreview.at(-1).number} / ${number(rows.length)} · byte ${byteStart}–${byteEnd}`;
   $('previous').disabled = page === 0; $('next').disabled = (page + 1) * pageSize >= rows.length;
@@ -264,7 +269,7 @@ $('byte-grid').addEventListener('click', event => {
   const field = row.fields.find(f => f.start <= byte && f.end >= byte), issue = affected(rowNum, byte);
   selection = { row: rowNum, byte };
   $('byte-grid').querySelector('.selected-cell')?.classList.remove('selected-cell'); cell.classList.add('selected-cell');
-  $('cell-detail').textContent = `Dòng ${rowNum}, byte ${byte} · ${field?.name || 'Ngoài record'}${field ? ` (${field.start}–${field.end})` : ''} · Ký tự: ${token ? token.valid ? visible(token.char) : 'không decode được' : 'không có byte'} · Hex: ${token?.hex || 'không có'}${token ? ` · ${token.end - token.start + 1} byte(s)` : ''}${issue ? ' · ' + issue.message : ''}`;
+  $('cell-detail').textContent = `Dòng ${rowNum}, byte ${byte} · ${field ? fieldLabel(field.code) : 'Ngoài record'}${field ? ` (${field.start}–${field.end})` : ''} · Ký tự: ${token ? token.valid ? visible(token.char) : 'không decode được' : 'không có byte'} · Hex: ${token?.hex || 'không có'}${token ? ` · ${token.end - token.start + 1} byte(s)` : ''}${issue ? ' · ' + issueMessage(issue) : ''}`;
 });
 $('byte-grid').addEventListener('keydown', event => {
   const cell = event.target.closest('[data-byte]'); if (!cell) return;
@@ -290,15 +295,15 @@ $('download-log').addEventListener('click', () => {
   if (!file) return;
   const log = ['ZENGIN VALIDATOR - LOG KIỂM TRA', `File: ${JSON.stringify(file.name)}`, `Thời điểm: ${result?.checkedAt || new Date().toISOString()}`];
   if (result) {
-    log.push(`Rule set: ${result.ruleVersion}`, `Line endings đã đọc: LF=${result.lineEndings.LF}; CRLF=${result.lineEndings.CRLF}; xử lý tương đương LF, không thay bytes gốc`, `SHA-256: ${result.sha256}`, `Settings: Type Code=${result.settings.typeCode}; max Data Records=${result.settings.maxRecords}`,
+    log.push(`Rule set: ${result.ruleVersion}`, `Line endings đã đọc: LF=${result.lineEndings.LF}; CRLF=${result.lineEndings.CRLF}; final file chỉ chấp nhận LF`, `SHA-256: ${result.sha256}`, `Settings: Type Code=${result.settings.typeCode}; max Data Records=${result.settings.maxRecords}`,
       `Trạng thái: ${$('status-title').textContent}`, `Kiểm tra toàn bộ: ${result.complete ? 'Có' : 'Không'}`,
       `Data Records ${result.complete ? 'thực tế' : 'đã gặp trước khi dừng'}: ${result.dataCount}`, `Tổng tiền: ${money(result.totalAmount)}`,
       `Trailer Count: ${result.trailerCount ?? 'Chưa xác định'}`, `Trailer Amount: ${money(result.trailerAmount)}`,
       `Lỗi: ${result.errorCount}; Chưa xác minh: ${result.unverifiedCount}`, `Thời gian engine: ${result.durationMs} ms`,
       'Log bao gồm tất cả mục đã phát hiện; các phần sau điểm dừng chưa được kiểm tra.', '');
     result.issues.forEach((i, index) => log.push(`[${index + 1}] ${i.severity === 'error' ? 'LỖI' : 'CHƯA XÁC MINH'} ${i.code}`,
-      `Dòng ${i.row}; byte ${i.start}–${i.end}; field ${i.field}`, i.message,
-      `Expected: ${i.expected || '(không áp dụng)'}`, `Actual: ${i.actual || '(xem raw bytes)'}`,
+      `Dòng ${i.row}; byte ${i.start}–${i.end}; field ${fieldLabel(i.fieldCode)}`, issueMessage(i),
+      `Chi tiết kỹ thuật: ${issueDetails(i) || '(không áp dụng)'}`,
       `Chuỗi gốc (JSON escaped): ${JSON.stringify(i.excerpt)}`, `Hex: ${i.hex || '(không có bytes)'}`, ''));
   } else log.push(`Đã dừng: ${localFailure || 'Chưa có kết quả'}`);
   const url = URL.createObjectURL(new Blob([log.join('\r\n')], { type: 'text/plain;charset=utf-8' }));

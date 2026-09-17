@@ -97,9 +97,11 @@ For complete byte offsets and field layouts, refer to [RULES.md](RULES.md).
 
 ### Validation Scope
 
+The validation core returns language-neutral issue codes and technical data. Vietnamese messages and field labels are maintained separately in `public/locale-vi.js` and are applied only by the presentation layer.
+
 - **Encoding**: CP932 / Shift_JIS compatible, strictly no BOM.
 - **Record Length**: Exactly 120 payload bytes per record.
-- **Line Endings**: LF (`0x0A`) terminated by default. CRLF (`0x0D 0x0A`) is automatically supported and handled per record. Standalone CR or missing line breaks are flagged as structural errors.
+- **Line Endings**: Every record, including End, must end with LF (`0x0A`). CRLF (`0x0D 0x0A`), standalone CR, and missing final LF are invalid. CRLF content remains inspectable but cannot pass validation.
 - **Structural Integrity**: Exactly 1 Header (`1`), $\ge 1$ Data (`2`), 1 Trailer (`8`), 1 End (`9`) in strict chronological sequence. No empty lines or trailing data.
 - **Allowed Character Set**: Half-width Katakana (`ｱ`–`ﾝ`), prolonged sound mark `ｰ` (`0xB0`), uppercase `A`–`Z`, `0`–`9`, and permitted half-width symbols (` `, `.`, `/`, `-`, `(`, `)`, `｢`, `｣`, `\`).
 - **Trailer Balance**: Exact mathematical match between Data record counts/amounts and Trailer values.
@@ -209,7 +211,7 @@ Chi tiết quy cách từng byte và quy tắc nghiệp vụ xem tại [RULES.md
 
 - **Mã hóa**: Tương thích CP932 / Shift_JIS, tuyệt đối không có BOM.
 - **Độ dài bản ghi**: Đúng 120 bytes dữ liệu cho mỗi record.
-- **Ký tự xuống dòng**: Mặc định LF (`0x0A`). Tự động hỗ trợ CRLF (`0x0D 0x0A`) theo từng dòng. Dòng có CR đứng riêng hoặc thiếu xuống dòng ở cuối file sẽ bị báo lỗi cấu trúc.
+- **Ký tự xuống dòng**: Mọi record, bao gồm End, phải kết thúc bằng LF (`0x0A`). CRLF (`0x0D 0x0A`), CR đứng riêng và thiếu LF cuối file đều không hợp lệ. Nội dung CRLF vẫn được hiển thị để kiểm tra nhưng không thể PASS.
 - **Trình tự cấu trúc**: Bắt buộc gồm 1 Header (`1`), $\ge 1$ Data (`2`), 1 Trailer (`8`), 1 End (`9`) đúng thứ tự. Không có dòng trống hoặc dữ liệu thừa sau End.
 - **Bộ ký tự cho phép**: Katakana nửa độ rộng (`ｱ`–`ﾝ`), dấu trường âm bán giác `ｰ` (`0xB0`), chữ hoa La-tinh `A`–`Z`, chữ số `0`–`9`, và các ký hiệu nửa độ rộng hợp lệ (` `, `.`, `/`, `-`, `(`, `)`, `｢`, `｣`, `\`).
 - **Đối soát Trailer**: Khớp số học chính xác tuyệt đối giữa số bản ghi và tổng tiền thực tế với số liệu khai báo ở Trailer.

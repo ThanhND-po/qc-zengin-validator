@@ -30,15 +30,16 @@ class ServerTests(unittest.TestCase):
         connection.close()
         return result
 
-    def test_lf_and_crlf_reach_engine_without_rewriting(self):
-        for ending in (b'\n', b'\r\n'):
+    def test_lf_passes_and_crlf_fails_without_transport_rewriting(self):
+        for ending, expected_status in ((b'\n', 'valid'), (b'\r\n', 'invalid')):
             raw = sample(ending=ending)
             status, headers, body = self.request('POST', '/api/verify', raw,
                                                 {'Content-Type': 'application/octet-stream'})
             result = json.loads(body)
             self.assertEqual(status, 200)
-            self.assertEqual(result['status'], 'valid')
+            self.assertEqual(result['status'], expected_status)
             self.assertEqual(result['fileBytes'], len(raw))
+            self.assertEqual(result['lineEndings']['CRLF'], 5 if ending == b'\r\n' else 0)
             self.assertEqual(headers['Cache-Control'], 'no-store')
 
     def test_cross_origin_and_foreign_host_denied(self):
@@ -48,6 +49,15 @@ class ServerTests(unittest.TestCase):
     def test_source_and_path_traversal_unavailable(self):
         for path in ('/validator.py', '/../README.md', '/.env', '/samples/valid-2-records.txt'):
             self.assertEqual(self.request('GET', path)[0], 404)
+
+    def test_localization_contract_is_exposed_to_the_ui(self):
+        status, _, body = self.request('GET', '/api/config')
+        config = json.loads(body)
+        self.assertEqual(status, 200)
+        self.assertEqual(config['resultSchemaVersion'], 2)
+        self.assertIn('CRLF_LINE_ENDING', config['issueCodes'])
+        self.assertIn('line_ending', config['fieldCodes'])
+        self.assertEqual(self.request('GET', '/locale-vi.js')[0], 200)
 
     def test_bad_settings_and_content_type(self):
         self.assertEqual(self.request('POST', '/api/verify', sample(), {'Content-Type': 'text/plain'})[0], 415)

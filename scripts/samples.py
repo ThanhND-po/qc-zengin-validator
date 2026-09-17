@@ -14,7 +14,7 @@ def samples():
         'trailer-mismatch.txt': change(raw, 4, 8, b'000000000001'),
         'edi-unverified.txt': change(raw, 2, 113, b'Y'),
         'invalid-150-records.txt': sample(150).replace(b'TEST BANK', b'tEST BANK'),
-        'valid-crlf.txt': sample(ending=b'\r\n'),
+        'invalid-crlf.txt': sample(ending=b'\r\n'),
         'invalid-cr-only.txt': sample(ending=b'\r'),
     }
 

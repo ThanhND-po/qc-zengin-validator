@@ -39,21 +39,33 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(r['fileBytes'], 605)
         self.assertEqual(r['rowLengths'], [120] * 5)
 
-    def test_crlf_normalized_logically_preserves_raw_evidence(self):
+    def test_crlf_is_invalid_and_preserves_raw_evidence(self):
         import hashlib
         raw = sample(ending=b'\r\n')
         r = validate(raw)
-        self.assertEqual(r['status'], 'valid')
+        self.assertEqual((r['status'], r['complete'], r['errorCount']), ('invalid', True, 5))
         self.assertEqual(r['lineEndings'], {'LF': 0, 'CRLF': 5})
         self.assertEqual(r['fileBytes'], 610)
         self.assertEqual(r['sha256'], hashlib.sha256(raw).hexdigest())
         self.assertEqual(r['totalAmount'], validate(sample())['totalAmount'])
+        issue = r['issues'][0]
+        self.assertEqual((issue['code'], issue['row'], issue['start'], issue['end'], issue['hex']),
+                         ('CRLF_LINE_ENDING', 1, 121, 122, '0D 0A'))
+        self.assertEqual(issue['fieldCode'], 'line_ending')
+        self.assertEqual(issue['details'], {'expected': 'LF', 'actual': 'CRLF'})
+        self.assertNotIn('message', issue)
+        self.assertNotIn('field', issue)
+        self.assertNotIn('expected', issue)
+        self.assertNotIn('actual', issue)
 
-    def test_mixed_lf_crlf_normalizes_without_shifting_issue(self):
+    def test_mixed_lf_crlf_is_invalid_without_shifting_other_issues(self):
         raw = change(sample(), 3, 51, 'ア'.encode('cp932'), remove=1).replace(b'\n', b'\r\n', 1)
         r = validate(raw)
         self.assertTrue(r['complete'])
+        self.assertEqual(r['status'], 'invalid')
         self.assertEqual(r['lineEndings'], {'LF': 4, 'CRLF': 1})
+        line_issue = next(i for i in r['issues'] if i['code'] == 'CRLF_LINE_ENDING')
+        self.assertEqual((line_issue['row'], line_issue['start'], line_issue['end'], line_issue['hex']), (1, 121, 122, '0D 0A'))
         issue = next(i for i in r['issues'] if i['code'] == 'MULTIBYTE')
         self.assertEqual((issue['row'], issue['start'], issue['end'], issue['hex']), (3, 51, 52, '83 41'))
 
@@ -186,7 +198,7 @@ class ValidatorTests(unittest.TestCase):
         content = change(sample(), 2, 113, b'Y')
         r = validate(content)
         self.assertEqual((r['status'], r['errorCount'], r['ediRows']), ('incomplete', 0, 1))
-        field = next(f for f in fields_for(content.split(b'\n')[1]) if f['name'] == 'EDI Information')
+        field = next(f for f in fields_for(content.split(b'\n')[1]) if f['code'] == 'edi_information')
         self.assertEqual((field['start'], field['end']), (92, 111))
 
     def test_edi_character_errors_still_found(self):

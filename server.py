@@ -8,7 +8,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
-from validator import TYPE_CODES, RULE_VERSION, validate, preview, fields_for
+from validator import TYPE_CODES, RULE_VERSION, RESULT_SCHEMA_VERSION, ISSUE_CODES, FIELD_CODES, validate, preview, fields_for
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / 'public'
@@ -58,9 +58,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path).path
         if path == '/api/config':
-            self.json(dict(defaultLimit=DEFAULT_LIMIT, maxUploadBytes=MAX_UPLOAD, typeCodes=TYPE_CODES, ruleVersion=RULE_VERSION))
+            self.json(dict(defaultLimit=DEFAULT_LIMIT, maxUploadBytes=MAX_UPLOAD, typeCodes=TYPE_CODES,
+                           ruleVersion=RULE_VERSION, resultSchemaVersion=RESULT_SCHEMA_VERSION,
+                           issueCodes=ISSUE_CODES, fieldCodes=FIELD_CODES))
             return
-        allowed = {'/': 'index.html', '/index.html': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css', '/favicon.svg': 'favicon.svg'}
+        allowed = {'/': 'index.html', '/index.html': 'index.html', '/app.js': 'app.js',
+                   '/locale-vi.js': 'locale-vi.js', '/style.css': 'style.css', '/favicon.svg': 'favicon.svg'}
         if path not in allowed:
             self.json({'error': 'Không tìm thấy.'}, 404)
             return
